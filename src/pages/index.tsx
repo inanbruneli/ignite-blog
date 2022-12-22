@@ -1,9 +1,12 @@
 import { GetStaticProps } from 'next';
+import Header from '../components/Header';
+import ListItem from '../components/ListItem';
 
 import { getPrismicClient } from '../services/prismic';
 
 import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
+import * as prismic from '@prismicio/client'
 
 interface Post {
   uid?: string;
@@ -26,13 +29,20 @@ interface HomeProps {
 
 export default function Home() {
   return (
-    <button> clica ai</button>
+    <>
+      <Header />
+      <div className={styles.containerList}>
+        <ListItem title='Como utilizar Hooks' subtitle='Pensando em sincronização em vez de ciclos de vida' date='19 Abr 2021' autor='Inan Brunelli' />
+        <ListItem title='Como utilizar Hooks' subtitle='Pensando em sincronização em vez de ciclos de vida' date='19 Abr 2021' autor='Inan Brunelli' />
+      </div>
+    </>
   )
 }
 
-// export const getStaticProps = async () => {
-//   // const prismic = getPrismicClient({});
-//   // const postsResponse = await prismic.getByType(TODO);
+export const getStaticProps = async () => {
 
-//   // TODO
-// };
+  const prismic = getPrismicClient({});
+  // const postsResponse = await prismic.getByType(TODO);
+
+  // TODO
+};
