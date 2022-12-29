@@ -4,5 +4,12 @@
   justify-content:center;
   flex-direction: column;
   margin-top: 40px;
-  padding: 0 370px
+  padding: 0 370px;
+
+  a {
+    color: #FF57B2;
+    font-weight: normal;
+    font-size: 18px;
+    cursor: pointer;
+  }
 }

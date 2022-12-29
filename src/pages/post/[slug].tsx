@@ -4,6 +4,8 @@ import { getPrismicClient } from '../../services/prismic';
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
 import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
+import { GetServerSideProps } from 'next/types';
+import { getSession, useSession } from "next-auth/react";
 
 interface Post {
   first_publication_date: string | null;
@@ -26,47 +28,73 @@ interface PostProps {
   post: Post;
 }
 
-export default function Post() {
+export default function Post({ post }: PostProps) {
+
+  let quantidade = 0;
+  post.data.content.map((item) => {
+    quantidade += item.heading.split(' ').length
+    item.body.map(itemBody => quantidade += itemBody.text.split(' ').length);
+  })
+  const tempo = (quantidade / 200).toFixed();
+
   return (
     <>
       <Header />
-      <img className={styles.img} src="/images/Banner.png" alt="logo" />
+      <div style={{ backgroundImage: `url(${post.data.banner.url})`, width: '100%', height: '400px', marginBottom: '80px', backgroundSize: 'cover' }}>
+
+      </div>
       <div className={styles.container}>
-        <h1>Criando um APP CRA do zero</h1>
+        <h1>{post.data.title}</h1>
         <div className={styles.containerInfos}>
           <div>
             <FiCalendar size={20} color='#BBBBBB' />
-            <h3>15 Mar 2021</h3>
+            <h3>{post.first_publication_date}</h3>
           </div>
           <div>
             <FiUser size={20} color='#BBBBBB' />
-            <h3>Inan Brunelli</h3>
+            <h3>{post.data.author}</h3>
           </div>
           <div>
             <FiClock size={20} color='#BBBBBB' />
-            <h3>4 Min</h3>
+            <h3>{tempo} Min</h3>
           </div>
         </div>
 
-        <h4>Proin et varius</h4>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam dolor sapien, vulputate eu diam at, condimentum hendrerit tellus.
-          Nam facilisis sodales felis, pharetra pharetra lectus auctor sed
-        </p>
+        {post.data.content.map(item => (
+          <>
+            <h4>{item.heading}</h4>
+            <p>{item.body[0].text}</p>
+          </>
+        ))}
+
       </div>
     </>
   )
 }
 
-// export const getStaticPaths = async () => {
-//   const prismic = getPrismicClient({});
-//   const posts = await prismic.getByType(TODO);
+export const getServerSideProps: GetServerSideProps = async ({ req, params }) => {
+  const prismic = getPrismicClient();
+  const response = await prismic.getByUID('post', String(params.slug), {});
 
-//   // TODO
-// };
+  const post = {
+    first_publication_date: new Date(response.last_publication_date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).replaceAll('de ', ''),
+    data: {
+      title: response.data.title,
+      banner: {
+        url: response.data.banner.url
+      },
+      author: response.data.author,
+      content: response.data.content
+    }
+  }
 
-// export const getStaticProps = async ({params }) => {
-//   const prismic = getPrismicClient({});
-//   const response = await prismic.getByUID(TODO);
-
-//   // TODO
-// };
+  return {
+    props: {
+      post
+    }
+  }
+}
