@@ -1,15 +1,48 @@
-.containerList {
-  display: flex;
-  align-items: flex-start;
-  justify-content:center;
-  flex-direction: column;
-  margin-top: 40px;
-  padding: 0 370px;
+.posts {
+  margin-top: 2rem;
 
-  a {
-    color: #FF57B2;
-    font-weight: normal;
-    font-size: 18px;
-    cursor: pointer;
+  > a {
+    display: block;
+
+    & + a {
+      margin-top: 3rem;
+    }
+  }
+
+  button {
+    border: none;
+    background: none;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--highlight);
+    margin-top: 4rem;
+  }
+}
+
+.post {
+  strong {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: var(--heading);
+  }
+
+  p {
+    margin-top: 0.5rem;
+    font-size: 1.125rem;
+  }
+
+  ul {
+    list-style: none;
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1.625rem;
+
+    li {
+      font-size: 0.875rem;
+
+      svg {
+        margin-right: 0.5rem;
+      }
+    }
   }
 }

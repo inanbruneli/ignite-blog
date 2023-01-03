@@ -1,11 +1,16 @@
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { GetStaticPaths, GetStaticProps } from 'next';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { RichText } from 'prismic-dom';
+import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
 import Header from '../../components/Header';
+
 import { getPrismicClient } from '../../services/prismic';
+
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
-import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
-import { GetServerSideProps } from 'next/types';
-import { getSession, useSession } from "next-auth/react";
 
 interface Post {
   first_publication_date: string | null;
@@ -29,72 +34,104 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps) {
+  const router = useRouter();
 
-  let quantidade = 0;
-  post.data.content.map((item) => {
-    quantidade += item.heading.split(' ').length
-    item.body.map(itemBody => quantidade += itemBody.text.split(' ').length);
-  })
-  const tempo = (quantidade / 200).toFixed();
+  if (router.isFallback) {
+    return <h1>Carregando...</h1>;
+  }
+
+  const totalWords = post.data.content.reduce((total, contentItem) => {
+    const headingTime = contentItem.heading.split(/\s+/).length;
+    const wordsTime = RichText.asText(contentItem.body).split(/\s+/).length;
+
+    return total + headingTime + wordsTime;
+  }, 0);
+  const readTime = Math.ceil(totalWords / 200);
+
+  const formattedDate = format(
+    new Date(post.first_publication_date),
+    'dd MMM yyyy',
+    {
+      locale: ptBR,
+    }
+  );
 
   return (
     <>
+      <Head>
+        <title>{post.data.title} | spacetraveling</title>
+      </Head>
+
       <Header />
-      <div style={{ backgroundImage: `url(${post.data.banner.url})`, width: '100%', height: '400px', marginBottom: '80px', backgroundSize: 'cover' }}>
+      <img src={post.data.banner.url} alt="Banner" className={styles.banner} />
+      <main className={commonStyles.container}>
+        <div className={styles.post}>
+          <div className={styles.postTop}>
+            <h1>{post.data.title}</h1>
+            <ul>
+              <li>
+                <FiCalendar />
+                {formattedDate}
+              </li>
+              <li>
+                <FiUser />
+                {post.data.author}
+              </li>
+              <li>
+                <FiClock />
+                {`${readTime} min`}
+              </li>
+            </ul>
+          </div>
 
-      </div>
-      <div className={styles.container}>
-        <h1>{post.data.title}</h1>
-        <div className={styles.containerInfos}>
-          <div>
-            <FiCalendar size={20} color='#BBBBBB' />
-            <h3>{post.first_publication_date}</h3>
-          </div>
-          <div>
-            <FiUser size={20} color='#BBBBBB' />
-            <h3>{post.data.author}</h3>
-          </div>
-          <div>
-            <FiClock size={20} color='#BBBBBB' />
-            <h3>{tempo} Min</h3>
-          </div>
+          {post.data.content.map(content => {
+            return (
+              <article key={content.heading}>
+                <h2>{content.heading}</h2>
+                <div
+                  className={styles.postContent}
+                  // eslint-disable-next-line react/no-danger
+                  dangerouslySetInnerHTML={{
+                    __html: RichText.asHtml(content.body),
+                  }}
+                />
+              </article>
+            );
+          })}
         </div>
-
-        {post.data.content.map(item => (
-          <>
-            <h4>{item.heading}</h4>
-            <p>{item.body[0].text}</p>
-          </>
-        ))}
-
-      </div>
+      </main>
     </>
-  )
+  );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ req, params }) => {
-  const prismic = getPrismicClient();
-  const response = await prismic.getByUID('post', String(params.slug), {});
+export const getStaticPaths: GetStaticPaths = async () => {
+  const prismic = getPrismicClient({});
+  const posts = await prismic.getByType('posts');
 
-  const post = {
-    first_publication_date: new Date(response.last_publication_date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).replaceAll('de ', ''),
-    data: {
-      title: response.data.title,
-      banner: {
-        url: response.data.banner.url
+  const paths = posts.results.map(post => {
+    return {
+      params: {
+        slug: post.uid,
       },
-      author: response.data.author,
-      content: response.data.content
-    }
-  }
+    };
+  });
+
+  return {
+    paths,
+    fallback: true,
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const { slug } = params;
+
+  const prismic = getPrismicClient({});
+  const response = await prismic.getByUID('posts', String(slug));
 
   return {
     props: {
-      post
-    }
-  }
-}
+      post: response,
+    },
+    revalidate: 1800,
+  };
+};
